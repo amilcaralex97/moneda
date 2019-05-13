@@ -3,51 +3,42 @@ import numpy as np
 from skimage import color, feature
 
 
-img = plt.imread('./img/moneda6.jpeg')
-gray_im = color.rgb2gray(img)
+img = plt.imread('./img/moneda4.jpg')
+gris = color.rgb2gray(img)
 
 plt.imshow(img)
 plt.figure()
-plt.imshow(gray_im, cmap='gray')
+plt.imshow(gris, cmap='gray')
 
 from skimage.filters import threshold_li
 
-coin_thresh = threshold_li(gray_im)
-print('Selected a threshold of %.2f' % coin_thresh)
-coin_mask = gray_im > coin_thresh
-plt.imshow(coin_mask, cmap='gray');
+binarizado = threshold_li(gris)
+print('Selected a threshold of %.2f' % binarizado)
+mascara = gris > binarizado
+plt.imshow(mascara, cmap='gray');
 
 from skimage import morphology
 from skimage.morphology import disk
 
-coin_mask_clean = morphology.remove_small_objects(coin_mask)
-coin_mask_clean = ~morphology.remove_small_objects(~coin_mask_clean)
+mascara_limpia = morphology.remove_small_objects(mascara)
+mascara_limpia = ~morphology.remove_small_objects(~mascara)
 
-plt.imshow(coin_mask_clean, cmap='gray');
-
-''' no_small = morphology.remove_small_objects(coin_mask, min_size=150)
-
-coins = morphology.binary_closing(no_small,disk(3)) '''
+plt.imshow(mascara_limpia, cmap='gray');
 
 #plt.imshow(coins, cmap='gray');
 
-bg_mask = ~coin_mask_clean
+mascara_de_fondo = ~mascara_limpia
 
 img.setflags(write=1)
-img[bg_mask] = 0
-gray_im[bg_mask] = 0
+img[mascara_de_fondo] = 0
+gris[mascara_de_fondo] = 0
 plt.imshow(img);
-
-''' im.setflags(write=1)
-gray_im.setflags(write=1)
-im[coins==False] = 0
-gray_im[coins==False] = 0 '''
 
 from scipy import ndimage as ndi
 from matplotlib.colors import ListedColormap
 
-distance_im = ndi.distance_transform_edt(bg_mask)
-print('distance transform:', distance_im.shape, distance_im.dtype)
+distancia_imagen = ndi.distance_transform_edt(mascara_de_fondo)
+print('transformada de distancia:', distancia_imagen.shape, distancia_imagen.dtype)
 
 from skimage import feature, measure
 
@@ -60,21 +51,21 @@ def imshow_overlay(im, mask, alpha=0.5, color='red', **kwargs):
 
 
 def watershed_segmentation(mask):
-    distance_im = ndi.distance_transform_edt(mask)
-    peaks = feature.peak_local_max(distance_im, indices=True)
-    peaks_im = np.zeros(distance_im.shape, dtype=bool)
+    distancia_imagen = ndi.distance_transform_edt(mask)
+    peaks = feature.peak_local_max(distancia_imagen, indices=True)
+    peaks_im = np.zeros(distancia_imagen.shape, dtype=bool)#matriz de zeros de la mascara
     for row, col in peaks:
         peaks_im[row, col] = 1
-    markers_im = measure.label(peaks_im)
-    labelled_im = morphology.watershed(-distance_im, markers_im, mask=coin_mask_clean)
-    return labelled_im
+    marcadores_imagen = measure.label(peaks_im)
+    etiqueta_imagen = morphology.watershed(-distancia_imagen, marcadores_imagen, mask=mascara_limpia)
+    return etiqueta_imagen
 
 
-labelled_coin_im = watershed_segmentation(coin_mask_clean)
+etiqueta_moneda = watershed_segmentation(mascara_limpia)
 
-plt.imshow(labelled_coin_im)
+plt.imshow(etiqueta_moneda)
 
-regions = measure.regionprops(labelled_coin_im)
+regions = measure.regionprops(etiqueta_moneda)
 
 plt.imshow(img)
 
@@ -82,7 +73,6 @@ for region in regions:
     y, x = region.centroid
     area = region.area
     area_str = '%.1f' % (area/100)
-    #plt.text(x, y, area_str, color='k', ha='center', va='center')
 
 min_5 = 61000
 max_5=62000
@@ -91,6 +81,7 @@ max_2=51000
 min_2=48000
 max_1=42000
 min_1=39000
+
 
 num_5 = 0
 num_10 = 0
